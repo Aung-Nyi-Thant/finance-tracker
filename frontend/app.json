@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Finance Tracker",
+    "slug": "finance-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.personal.financetracker",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-sqlite",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Finance Tracker looks for new payment screenshots so it can add them for you.",
+          "savePhotosPermission": false,
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-asset"
+    ],
+    "scheme": "financetracker",
+    "backgroundColor": "#0B1020",
+    "platforms": [
+      "ios"
+    ]
+  }
+}
