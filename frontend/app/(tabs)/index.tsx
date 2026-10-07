@@ -118,7 +118,7 @@ export default function Dashboard() {
             <View style={[styles.empty, cardStyle(t, 28)]}>
               <NeuBadge icon="receipt-outline" color={t.accent} size={64} float />
               <Text style={[styles.emptyTitle, { color: t.text }]}>No slips yet</Text>
-              <Text style={[styles.emptyBody, { color: t.textSecondary }]}>Screenshot a payment slip and it will show up here.</Text>
+              <Text style={[styles.emptyBody, { color: t.textSecondary }]}>Save or screenshot a payment slip and it will show up here.</Text>
               <PrimaryButton title="Open Inbox" onPress={() => router.navigate('/add')} style={{ alignSelf: 'stretch', marginTop: 8 }} />
             </View>
           ) : (

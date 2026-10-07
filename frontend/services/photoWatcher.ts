@@ -1,4 +1,4 @@
-import { AssetField, MediaSubtype, MediaType, Query } from 'expo-media-library';
+import { AssetField, MediaType, Query } from 'expo-media-library';
 import * as Permissions from 'expo-media-library/legacy';
 import Storage from 'expo-sqlite/kv-store';
 
@@ -7,7 +7,7 @@ const DISABLED_KEY = 'autoImport.disabled';
 
 export type PhotoAccess = 'all' | 'limited' | 'none' | 'undetermined';
 
-export interface ScreenshotRef {
+export interface PhotoRef {
   id: string;
   uri: string;
   createdAt: number; // ms
@@ -40,7 +40,7 @@ async function getLastSeen(): Promise<number> {
   const raw = await Storage.getItem(LAST_SEEN_KEY);
   const parsed = raw ? Number(raw) : NaN;
   if (Number.isFinite(parsed)) return parsed;
-  // First run: only look at screenshots taken from now on — never sweep the user's history.
+  // First run: only look at photos added from now on — never sweep the user's history.
   const now = Date.now();
   await Storage.setItem(LAST_SEEN_KEY, String(now));
   return now;
@@ -54,14 +54,17 @@ export async function markSeen(createdAt: number): Promise<void> {
 const BATCH = 20;
 
 export interface ScanResult {
-  screenshots: ScreenshotRef[];
+  photos: PhotoRef[];
   /** Creation time of the newest photo examined; pass to markSeen() once the batch is handled. */
   scannedUpTo: number | null;
   hasMore: boolean;
 }
 
-/** Screenshots added to Photos since the last check, oldest first. */
-export async function scanForScreenshots(): Promise<ScanResult> {
+/**
+ * Images added to Photos since the last check, oldest first. Not limited to screenshots: bank apps often save
+ * the payment slip as an ordinary image. The backend rejects non-receipts, so those are skipped quietly.
+ */
+export async function scanForNewPhotos(): Promise<ScanResult> {
   const since = await getLastSeen();
   const assets = await new Query()
     .eq(AssetField.MEDIA_TYPE, MediaType.IMAGE)
@@ -70,14 +73,12 @@ export async function scanForScreenshots(): Promise<ScanResult> {
     .limit(BATCH)
     .exe();
 
-  const screenshots: ScreenshotRef[] = [];
+  const photos: PhotoRef[] = [];
   let scannedUpTo: number | null = null;
   for (const asset of assets) {
     const createdAt = (await asset.getCreationTime()) ?? Date.now();
     scannedUpTo = Math.max(scannedUpTo ?? 0, createdAt);
-    const subtypes = await asset.getMediaSubtypes();
-    if (!subtypes.includes(MediaSubtype.SCREENSHOT)) continue;
-    screenshots.push({ id: asset.id, uri: await asset.getUri(), createdAt });
+    photos.push({ id: asset.id, uri: await asset.getUri(), createdAt });
   }
-  return { screenshots, scannedUpTo, hasMore: assets.length === BATCH };
+  return { photos, scannedUpTo, hasMore: assets.length === BATCH };
 }

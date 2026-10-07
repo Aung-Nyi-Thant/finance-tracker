@@ -72,7 +72,7 @@ describe('Inbox: reviewing auto-imported slips', () => {
     expect(actions.discardPending).toHaveBeenCalledWith(12);
   });
 
-  it('refreshes the list and rescans for screenshots whenever it is opened', async () => {
+  it('refreshes the list and rescans for new photos whenever it is opened', async () => {
     setup();
     await render(<Inbox />);
     expect(actions.refreshPending).toHaveBeenCalled();
@@ -96,10 +96,10 @@ describe('Inbox: reviewing auto-imported slips', () => {
 });
 
 describe('Inbox: auto-import status', () => {
-  it('shows that screenshots are being watched', async () => {
+  it('shows that new photos are being watched', async () => {
     setup();
     await render(<Inbox />);
-    expect(screen.getByText('Watching for screenshots')).toBeOnTheScreen();
+    expect(screen.getByText('Watching for new photos')).toBeOnTheScreen();
     expect(screen.getByText('Checked just now')).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Turn off'));
     expect(auto.disable).toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe('Inbox: auto-import status', () => {
   it('asks permission before watching anything', async () => {
     setup({ auto: { access: 'undetermined', watching: false } });
     await render(<Inbox />);
-    expect(screen.getByText('Auto-import screenshots')).toBeOnTheScreen();
+    expect(screen.getByText('Auto-import payment slips')).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Turn on'));
     expect(auto.enable).toHaveBeenCalled();
   });

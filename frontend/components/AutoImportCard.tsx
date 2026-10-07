@@ -16,7 +16,7 @@ function ago(ms: number | null): string {
   return `Checked ${Math.round(s / 60)}m ago`;
 }
 
-/** Status of the automatic screenshot import — replaces the old "pick a photo" buttons. */
+/** Status of the automatic payment-slip import — replaces the old "pick a photo" buttons. */
 export function AutoImportCard() {
   const t = useTheme();
   const { access, watching, importing, error, lastScanAt, enable, disable } = useAutoImport();
@@ -26,7 +26,7 @@ export function AutoImportCard() {
       <View style={[styles.card, cardStyle(t, 26)]}>
         <Header icon="lock-closed" color={t.danger} title="Photo access is off" t={t} />
         <Text style={[styles.body, { color: t.textSecondary }]}>
-          Allow Photos access in Settings so payment screenshots can be detected automatically.
+          Allow Photos access in Settings so payment slips can be detected automatically.
         </Text>
         <PrimaryButton title="Open Settings" onPress={() => Linking.openSettings()} variant="secondary" />
       </View>
@@ -36,10 +36,11 @@ export function AutoImportCard() {
   if (!watching) {
     return (
       <View style={[styles.card, cardStyle(t, 26)]}>
-        <Header icon="sparkles" color={t.accent} title="Auto-import screenshots" t={t} />
+        <Header icon="sparkles" color={t.accent} title="Auto-import payment slips" t={t} />
         <Text style={[styles.body, { color: t.textSecondary }]}>
-          When you screenshot a payment slip, it's detected the next time you open the app, read by AI and waiting
-          here for one tap. Only screenshots taken from now on are checked, and each is sent to your own backend.
+          When a payment slip lands in Photos, whether a screenshot or an image your bank app saves, it's detected the
+          next time you open the app, read by AI and waiting here for one tap. Only photos added from now on are
+          checked, and each is sent to your own backend.
         </Text>
         <PrimaryButton title="Turn on" onPress={enable} />
       </View>
@@ -52,7 +53,7 @@ export function AutoImportCard() {
         <Pulse color={error ? t.danger : t.positive} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: t.text }]}>
-            {importing > 0 ? 'Reading receipt…' : error ? 'Auto-import needs attention' : 'Watching for screenshots'}
+            {importing > 0 ? 'Reading receipt…' : error ? 'Auto-import needs attention' : 'Watching for new photos'}
           </Text>
           <Text style={[styles.sub, { color: error ? t.danger : t.textSecondary }]} numberOfLines={2}>
             {error ?? (importing > 0 ? 'Hang tight, this takes a few seconds' : ago(lastScanAt))}
@@ -68,7 +69,7 @@ export function AutoImportCard() {
       </View>
       {access === 'limited' && (
         <Text style={[styles.warn, { color: t.textSecondary }]}>
-          Photos access is limited, so new screenshots may be missed. Allow full access in Settings.
+          Photos access is limited, so new photos may be missed. Allow full access in Settings.
         </Text>
       )}
     </View>

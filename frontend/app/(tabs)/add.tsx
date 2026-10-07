@@ -69,7 +69,7 @@ export default function Inbox() {
               <Ionicons name="checkmark-circle" size={44} color={t.positive} />
               <Text style={[styles.clearTitle, { color: t.text }]}>All caught up</Text>
               <Text style={[styles.clearBody, { color: t.textSecondary }]}>
-                Screenshot a payment slip and it will appear here.
+                Save or screenshot a payment slip and it will appear here.
               </Text>
             </View>
           )}

@@ -17,10 +17,10 @@ import {
   isDisabledByUser,
   markSeen,
   requestPhotoAccess,
-  scanForScreenshots,
+  scanForNewPhotos,
   setDisabledByUser,
   type PhotoAccess,
-} from '../services/screenshotWatcher';
+} from '../services/photoWatcher';
 import { useTransactions } from './TransactionsContext';
 
 interface ContextValue {
@@ -79,16 +79,16 @@ export function AutoImportProvider({ children }: { children: ReactNode }) {
     scanning.current = true;
     try {
       for (let round = 0; round < 5; round++) {
-        const { screenshots, scannedUpTo, hasMore } = await scanForScreenshots();
+        const { photos, scannedUpTo, hasMore } = await scanForNewPhotos();
         let failedAt: number | null = null;
-        for (const shot of screenshots) {
+        for (const shot of photos) {
           setImporting((n) => n + 1);
           try {
             await importReceipt(shot.uri);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch (err) {
             if (!(err instanceof ApiError && err.isNotAReceipt)) {
-              // Backend unreachable / AI failure: keep this screenshot (and later ones) for the next scan.
+              // Backend unreachable / AI failure: keep this photo (and later ones) for the next scan.
               failedAt = shot.createdAt;
               setError((err as Error).message);
               break;
@@ -97,7 +97,7 @@ export function AutoImportProvider({ children }: { children: ReactNode }) {
             setImporting((n) => n - 1);
           }
         }
-        if (screenshots.length) await refreshPending();
+        if (photos.length) await refreshPending();
         if (scannedUpTo !== null) await markSeen(failedAt !== null ? failedAt - 1 : scannedUpTo);
         if (failedAt !== null || !hasMore) {
           if (failedAt === null) setError(null);
@@ -132,7 +132,7 @@ export function AutoImportProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [watching, scanNow]);
 
-  // React to the photo library changing while the app is open (screenshot taken, then app reopened quickly).
+  // React to the photo library changing while the app is open (slip saved, then app reopened quickly).
   useEffect(() => {
     if (!watching) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
