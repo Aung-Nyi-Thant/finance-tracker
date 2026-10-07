@@ -29,7 +29,10 @@ if IS_SQLITE:
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     # Serverless Postgres (Neon) closes idle connections: test each one before use and recycle often.
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=240, pool_size=3, max_overflow=2)
+    # pool_timeout is short so a pile-up fails fast instead of holding threads for 30s.
+    engine = create_engine(
+        DATABASE_URL, pool_pre_ping=True, pool_recycle=240, pool_size=5, max_overflow=5, pool_timeout=10
+    )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 

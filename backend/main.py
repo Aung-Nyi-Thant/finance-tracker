@@ -91,7 +91,8 @@ def _get_tx(db: Session, tx_id: int) -> Transaction:
 
 
 @app.get("/api/health")
-def health():
+async def health():
+    # async so it runs on the event loop: a burst of slow DB requests can't starve the health check.
     return {"status": "ok"}
 
 
