@@ -39,8 +39,8 @@ export function AutoImportCard() {
         <Header icon="sparkles" color={t.accent} title="Auto-import payment slips" t={t} />
         <Text style={[styles.body, { color: t.textSecondary }]}>
           When a payment slip lands in Photos, whether a screenshot or an image your bank app saves, it's detected the
-          next time you open the app, read by AI and waiting here for one tap. Only photos added from now on are
-          checked, and each is sent to your own backend.
+          next time you open the app, read on your phone and waiting here for one tap. Only photos added from now on
+          are checked. Photos stay on your phone; only the text of a payment slip is sent to your backend.
         </Text>
         <PrimaryButton title="Turn on" onPress={enable} />
       </View>

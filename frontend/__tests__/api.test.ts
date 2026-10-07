@@ -197,6 +197,25 @@ describe('months, editing and deleting saved slips', () => {
   });
 });
 
+describe('importing slip text read on the phone', () => {
+  it('POSTs only the recognised text lines as JSON', async () => {
+    respond({ id: 7, status: 'pending' });
+    await api.importSlipText(['Amount', '35.00 THB']);
+    const { url, init } = lastCall();
+    expect(url).toBe(`${API_URL}/api/transactions/import-text`);
+    expect(init.method).toBe('POST');
+    expect(init.headers!['Content-Type']).toBe('application/json');
+    expect(JSON.parse(init.body as string)).toEqual({ lines: ['Amount', '35.00 THB'] });
+  });
+
+  it('flags "not a receipt" so the caller can skip it quietly', async () => {
+    respond({ detail: 'not_a_receipt' }, 422);
+    const error = await api.importSlipText(['hello']).catch((e) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.isNotAReceipt).toBe(true);
+  });
+});
+
 describe('importing a slip (images never touch disk on the phone)', () => {
   const decode = (bytes: Uint8Array) => Array.from(bytes).map((b) => String.fromCharCode(b)).join('');
 

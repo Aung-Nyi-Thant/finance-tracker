@@ -142,6 +142,18 @@ export async function importReceipt(source: string): Promise<Transaction> {
   return postImage<Transaction>('/api/transactions/import', bytes, mime);
 }
 
+/**
+ * Import a payment slip from text recognised on the phone. No image is uploaded and no AI is involved: the
+ * backend reads the fields with rules, so it is free, instant and works even when Gemini is down.
+ */
+export function importSlipText(lines: string[]): Promise<Transaction> {
+  return request<Transaction>('/api/transactions/import-text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lines }),
+  });
+}
+
 export function getPending(): Promise<Transaction[]> {
   return request<Transaction[]>('/api/transactions/pending');
 }

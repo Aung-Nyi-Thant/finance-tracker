@@ -11,7 +11,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { AppState } from 'react-native';
-import { ApiError, importReceipt } from '../services/api';
+import { ApiError, importReceipt, importSlipText } from '../services/api';
 import {
   getPhotoAccess,
   isDisabledByUser,
@@ -21,6 +21,7 @@ import {
   setDisabledByUser,
   type PhotoAccess,
 } from '../services/photoWatcher';
+import { readSlipLines } from '../services/slipOcr';
 import { useTransactions } from './TransactionsContext';
 
 interface ContextValue {
@@ -84,7 +85,10 @@ export function AutoImportProvider({ children }: { children: ReactNode }) {
         for (const shot of photos) {
           setImporting((n) => n + 1);
           try {
-            await importReceipt(shot.uri);
+            // Read on the phone; a photo that isn't a payment slip stays here and is never uploaded.
+            const lines = await readSlipLines(shot.uri);
+            if (!lines) continue;
+            await importSlipText(lines);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch (err) {
             if (!(err instanceof ApiError && err.isNotAReceipt)) {
