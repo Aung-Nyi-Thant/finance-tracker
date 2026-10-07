@@ -8,13 +8,14 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.personal.financetracker",
+      "bundleIdentifier": "com.aungnyi.financetracker",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true,
           "NSAllowsArbitraryLoads": true
         }
-      }
+      },
+      "appleTeamId": "KRYVYS88L5"
     },
     "plugins": [
       "expo-router",
@@ -29,7 +30,8 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withIOSSceneLifecycle"
     ],
     "scheme": "financetracker",
     "backgroundColor": "#0B1020",
