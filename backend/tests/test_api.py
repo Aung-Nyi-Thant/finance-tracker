@@ -306,3 +306,39 @@ async def test_chat_surfaces_ai_failures_as_502(client, gemini):
     gemini.fail_with(RuntimeError("model overloaded"))
     response = await client.post("/api/assistant/chat", json={"message": "hi"})
     assert response.status_code == 502 and "model overloaded" in response.json()["detail"]
+
+
+# ------------------------------------------------------------------ event loop stays free during AI calls
+
+
+@pytest.mark.parametrize("path", ["/api/transactions/import", "/api/transactions/upload"])
+async def test_slow_ai_call_does_not_block_the_event_loop(client, mocker, path):
+    """A blocking Gemini call must not freeze the server: Render's 5s health check would fail and restart it."""
+    import asyncio
+    import time
+
+    from models import ParsedReceipt
+
+    def slow_extract(data, mime):
+        time.sleep(0.5)  # stands in for a Gemini call plus its retry back-off
+        return ParsedReceipt(amount=10, merchant_name="Cafe", category="Food", transaction_date="2026-10-04")
+
+    mocker.patch("ai_service.extract_receipt", side_effect=slow_extract)
+
+    worst_lag = 0.0
+    stop = asyncio.Event()
+
+    async def heartbeat():
+        nonlocal worst_lag
+        while not stop.is_set():
+            before = time.monotonic()
+            await asyncio.sleep(0.01)
+            worst_lag = max(worst_lag, time.monotonic() - before - 0.01)
+
+    beat = asyncio.create_task(heartbeat())
+    response = await post_image(client, path=path)
+    stop.set()
+    await beat
+
+    assert response.status_code == 200
+    assert worst_lag < 0.2, f"event loop was frozen for {worst_lag:.2f}s during the AI call"

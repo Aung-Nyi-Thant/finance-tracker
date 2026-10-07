@@ -3,6 +3,7 @@ from datetime import date
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -72,6 +73,8 @@ async def _read_image(file: UploadFile) -> tuple[bytes, str]:
 
 
 def _parse(data: bytes, mime: str) -> ParsedReceipt:
+    # Blocking (network call + retry sleeps): async handlers must call this via run_in_threadpool, otherwise the
+    # whole event loop, health check included, freezes for as long as Gemini takes.
     try:
         return ai_service.extract_receipt(data, mime)
     except ai_service.NotAReceiptError as exc:
@@ -92,7 +95,7 @@ def _get_tx(db: Session, tx_id: int) -> Transaction:
 
 @app.get("/api/health")
 async def health():
-    # async so it runs on the event loop: a burst of slow DB requests can't starve the health check.
+    # async so it runs on the event loop and never waits for a free worker thread behind slow DB requests.
     return {"status": "ok"}
 
 
@@ -100,7 +103,7 @@ async def health():
 async def upload_receipt(file: UploadFile = File(...)):
     """Run OCR and return the extracted fields. The image is processed in memory and never stored."""
     data, mime = await _read_image(file)
-    return _parse(data, mime)
+    return await run_in_threadpool(_parse, data, mime)
 
 
 @api.post("/transactions/import", response_model=TransactionOut)
@@ -118,7 +121,7 @@ async def import_receipt(file: UploadFile = File(...), db: Session = Depends(get
     if existing:
         return existing
 
-    parsed = _parse(data, mime)
+    parsed = await run_in_threadpool(_parse, data, mime)
     tx = Transaction(
         **parsed.model_dump(),
         image_hash=digest,
