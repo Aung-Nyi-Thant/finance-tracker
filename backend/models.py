@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timezone
-from typing import List
+from typing import Annotated, List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Literal
@@ -138,6 +138,12 @@ class ParsedReceipt(BaseModel):
     merchant_name: str
     category: str
     transaction_date: str
+
+
+class SlipText(BaseModel):
+    """Text recognised on-device from a payment slip photo (the image itself never leaves the phone)."""
+
+    lines: list[Annotated[str, Field(max_length=300)]] = Field(max_length=200)
 
 
 class TransactionCreate(BaseModel):

@@ -11,6 +11,7 @@ import ai_service
 import insights
 import memory
 import search as smart_search
+import slip_parser
 from assistant import router as assistant_router
 from database import Base, engine, get_db, run_migrations
 from security import require_token
@@ -19,6 +20,7 @@ from models import (
     CategoryTotal,
     ParsedReceipt,
     SearchOut,
+    SlipText,
     SummaryOut,
     Transaction,
     TransactionConfirm,
@@ -127,6 +129,28 @@ async def import_receipt(file: UploadFile = File(...), db: Session = Depends(get
         image_hash=digest,
         status="pending",
     )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+@api.post("/transactions/import-text", response_model=TransactionOut)
+def import_slip_text(payload: SlipText, db: Session = Depends(get_db)):
+    """Import a payment slip from text the phone recognised on-device: no image upload, no AI.
+
+    Rule-based, so it costs nothing and works when Gemini is down. Text that isn't a payment slip gets the same
+    422 "not_a_receipt" as the image path. The same slip sent twice (matched by the bank's transaction
+    reference) returns the existing transaction instead of creating a duplicate.
+    """
+    parsed = slip_parser.parse_slip(payload.lines)
+    if parsed is None:
+        raise HTTPException(422, "not_a_receipt")
+    fingerprint = slip_parser.slip_fingerprint(payload.lines)
+    existing = db.query(Transaction).filter(Transaction.image_hash == fingerprint).first()
+    if existing:
+        return existing
+    tx = Transaction(**parsed.model_dump(), image_hash=fingerprint, status="pending")
     db.add(tx)
     db.commit()
     db.refresh(tx)

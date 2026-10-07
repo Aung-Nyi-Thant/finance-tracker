@@ -342,3 +342,50 @@ async def test_slow_ai_call_does_not_block_the_event_loop(client, mocker, path):
 
     assert response.status_code == 200
     assert worst_lag < 0.2, f"event loop was frozen for {worst_lag:.2f}s during the AI call"
+
+
+# ------------------------------------------------------------------ POST /api/transactions/import-text (on-device OCR)
+
+SLIP_LINES = [
+    "Bangkok Bank", "Transaction successful", "07 Oct 26, 17:10", "Amount", "35.00 THB", "From", "To",
+    "MR. AUNG NYI NYI THANT", "672-0-xxx086", "Bangkok Bank", "WILAIWAN TREETHAWAT", "1-4106-0xxxx-41-5",
+    "PromptPay", "Fee", "0.00 THB", "Bank reference no.", "370575", "Transaction reference",
+    "2026100717105324009619408", "Scan to verify",
+]
+
+
+async def test_import_text_creates_a_pending_transaction_without_calling_gemini(client, gemini, db):
+    response = await client.post("/api/transactions/import-text", json={"lines": SLIP_LINES})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["amount"], body["merchant_name"], body["transaction_date"], body["status"]) == (
+        35.0, "Wilaiwan Treethawat", "2026-10-07", "pending")
+    assert gemini.calls == []  # rule-based: no AI call at all
+    assert db.query(Transaction).count() == 1
+
+
+async def test_import_text_ignores_the_same_slip_sent_twice(client, db):
+    first = (await client.post("/api/transactions/import-text", json={"lines": SLIP_LINES})).json()
+    second = (await client.post("/api/transactions/import-text", json={"lines": list(SLIP_LINES)})).json()
+    assert first["id"] == second["id"]
+    assert db.query(Transaction).count() == 1
+
+
+async def test_import_text_rejects_text_that_is_not_a_slip(client, db):
+    response = await client.post("/api/transactions/import-text", json={"lines": ["Sunset at the beach", "IMG_1234"]})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "not_a_receipt"
+    assert db.query(Transaction).count() == 0
+
+
+async def test_import_text_requires_the_api_token_when_configured(client, monkeypatch):
+    monkeypatch.setenv("API_TOKEN", "s3cret")
+    assert (await client.post("/api/transactions/import-text", json={"lines": SLIP_LINES})).status_code == 401
+
+
+async def test_import_text_caps_the_payload(client):
+    too_many = {"lines": ["x"] * 201}
+    too_long = {"lines": ["x" * 301]}
+    assert (await client.post("/api/transactions/import-text", json=too_many)).status_code == 422
+    assert (await client.post("/api/transactions/import-text", json=too_long)).status_code == 422
